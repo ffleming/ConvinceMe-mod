@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!-- dtd is just for validation; not worth failure if URL cannot be reached
+<!DOCTYPE project PUBLIC "-//apache.org//DTD ant 1.4//EN" "http://codeguild.com/ant1.4.dtd">
+-->
+<!--
+	build specification used by Ant to build draw.
+
+     The "default" attribute defines the
+     target which is executed if no specific target is requested,
+     and the "basedir" attribute defines the current working directory
+     from which Ant executes the requested task.  This is normally
+     set to the current working directory.
+-->
+
+<project name="convinceme" default="compile" basedir=".">
+
+    <!-- ===================== Property Definitions ===========================
+
+      Each of the following properties are used in the build script.
+      Values for these properties are set by the first place they are
+      defined, from the following list:
+      * Definitions on the "ant" command line
+      * Definitions from a "build.properties" file in the top level
+        source directory
+      * Definitions from a "build.properties" file in the developer's
+        home directory
+      * Default definitions in this build.xml file
+
+      You will note below that property values can be composed based on the
+      contents of previously defined properties using the sytax ${xxx} for previously
+      defined property xxx.  This is a powerful technique
+      that helps you minimize the number of changes required when your development
+      environment is modified.  Note that property composition is allowed within
+      "build.properties" files as well as in the "build.xml" script.
+
+    -->
+
+
+
+    <!-- ==================== File and Directory Names ========================
+
+      These properties generally define file and directory names (or paths) that
+      affect where the build process stores its outputs.
+
+      app.name             Base name of this application, used to
+                           construct filenames and directories.
+                           Defaults to "myapp".
+
+      app.version          Version identifier for this application.
+
+      build.home           The directory into which the "prepare" and
+                           "compile" targets will generate their output.
+
+      deploy.home          The name of the directory into which the
+                           deployment hierarchy will be created, and into
+                           which the build directory will be copied.
+
+      chem.dist.home       this term hijacked for our current setup
+                           to mean the SOURCE of static dist files,
+                           not the destination (use deploy.home for that)
+
+    -->
+
+    <property name="app.name" value="convinceme"/>
+    <property name="app.version" value="2.0"/>
+
+    <!-- special property which should get all system props and put
+         them into a set with prefix "env." -->
+    <property environment="env"/>
+
+    <!-- you can change any of these properties
+         via a local file "ant.properties" as an easy way to override.
+         properties are immutable after setting, so the first person
+         to set the property wins.-->
+    <property file="ant.properties"/>
+
+    <property name="cvs.root" value="${env.CVS_HOME}"/>
+    <property name="tempdir" value="${env.TMP}"/>
+
+
+    <!-- all of the rest are relative paths -->
+
+    <property name="src.home" value="${basedir}/src"/>
+
+    <property name="dist.home" value="${basedir}/dist"/>
+
+    <property name="build.home" value="${dist.home}/classes"/>
+
+    <property name="deploy.home" value="${dist.home}/deploy"/>
+
+    <property name="pubsrc.home" value="${deploy.home}/convinceme-src"/>
+
+
+    <!--  ==================== Compilation Control Options ====================
+
+      These properties control option settings on the Javac compiler when it
+      is invoked using the <javac> task.
+
+      compile.debug        Should compilation include the debug option?
+
+      compile.deprecation  Should compilation include the deprecation option?
+
+      compile.optimize     Should compilation include the optimize option?
+
+    -->
+
+    <property name="compile.debug" value="true"/>
+    <property name="compile.deprecation" value="true"/>
+    <property name="compile.optimize" value="true"/>
+
+    <!-- property for the jikes compiler, to pull in any necessary classes -->
+    <property name="build.compiler.fulldepend" value="true"/>
+
+
+    <!-- ==================== External Dependencies =========================== -
+
+      Use property values to define the locations of external JAR files on which
+      your application will depend.  In general, these values will be used for
+      two purposes:
+      * Inclusion on the classpath that is passed to the Javac compiler
+      * Being copied into the "/WEB-INF/lib" directory during execution
+        of the "deploy" target.
+    -->
+
+
+    <!-- jars which must go on classpath-->
+
+    <patternset id="allJarsAndZipsPattern">
+        <include name="*.jar"/>
+        <include name="*.zip"/>
+    </patternset>
+
+    <!-- from jars dir -->
+    <fileset id="cmJars" dir="${build.home}">
+        <patternset refid="allJarsAndZipsPattern"/>
+    </fileset>
+
+
+    <!-- ==================== Compilation Classpath ===========================
+
+      Rather than relying on the CLASSPATH environment variable, Ant includes
+      features that makes it easy to dynamically construct the classpath.
+
+    -->
+
+    <path id="compile.classpath">
+        <fileset refid="cmJars"/>
+    </path>
+
+
+    <!-- ==================== Clean Target ====================================
+      The "clean" target deletes compiled classes to ensure the app can be
+      built from scratch. Don't delete jar or gif files, only compiled classes
+    -->
+
+    <target name="clean" description="Delete old class files and old deploy">
+        <delete>
+            <fileset dir="${build.home}">
+                <include name="**/*.class"/>
+                <exclude name="*.jar"/>
+                <exclude name="*.gif"/>
+            </fileset>
+        </delete>
+        <delete dir="${deploy.home}"/>
+    </target>
+
+
+
+    <!-- ==================== Compile Target ==================================
+
+      The "compile" target transforms source files (from your "src" directory)
+      into object files in the appropriate location in the build directory.
+
+    -->
+
+    <target name="compile"
+        description="Compile Java sources">
+
+        <javac srcdir="${src.home}"
+            destdir="${build.home}"
+            debug="${compile.debug}"
+            deprecation="${compile.deprecation}"
+            optimize="${compile.optimize}">
+            <classpath refid="compile.classpath"/>
+        </javac>
+    </target>
+
+    <!-- ==================== Jar Target ==================================
+
+    The "jar" target creates convinceme.jar
+
+  -->
+
+    <target name="jar" depends="compile">
+        <jar
+            jarfile="${dist.home}/convinceme.jar"
+            basedir="${build.home}"
+            includes="com/**"
+            />
+    </target>
+
+   <!-- =================== zipsrc Target ===========================
+
+       The "zipsrc" target creates a zip file of all the source to
+       put up on sourceforge
+
+   -->
+
+    <target name="zipsrc" depends="deploy">
+        <!-- make directories to copy source files into -->
+        <mkdir dir="${pubsrc.home}"/>
+        <mkdir dir="${pubsrc.home}/src"/>
+        <mkdir dir="${pubsrc.home}/dist"/>
+        <mkdir dir="${pubsrc.home}/dist/classes"/>
+        <mkdir dir="${pubsrc.home}/dist/arguments"/>
+
+        <!-- copy in ant build file -->
+        <copy file="${basedir}/build.xml" todir="${pubsrc.home}"/>
+
+        <!-- copy in all java source -->
+        <copy todir="${pubsrc.home}/src">
+            <fileset dir="${src.home}"/>
+        </copy>
+
+        <!-- copy in all images, but not compiled classes -->
+        <copy todir="${pubsrc.home}/dist/classes">
+            <fileset dir="${dist.home}/classes"
+                     excludes="**/*.class"/>
+        </copy>
+
+        <!-- copy in sample arguments -->
+        <copy todir="${pubsrc.home}/dist/arguments">
+            <fileset dir="${basedir}/arguments/" includes="icecubes.xml"/>
+        </copy>
+
+        <!-- copy in the license and readme file -->
+        <copy todir="${pubsrc.home}/dist">
+            <fileset dir="${dist.home}" includes="README.html"/>
+            <fileset dir="${dist.home}" includes="license.txt"/>
+        </copy>
+
+        <!-- zip it all up -->
+        <zip destfile="${dist.home}/convinceme-src.zip">
+           <zipfileset dir="${pubsrc.home}" prefix="convinceme-src"/>
+        </zip>
+    </target>
+
+
+   <!-- ==================== Deploy Target ==================================
+
+    Deploy the convinceme program as a stand alone app.
+
+  -->
+
+       <target name="deploy" depends="jar">
+        <mkdir dir="${deploy.home}"/>
+        <copy todir="${deploy.home}">
+            <fileset dir="${dist.home}" includes="ConvinceMe.bat"/>
+            <fileset dir="${dist.home}" includes="README.html"/>
+            <fileset dir="${dist.home}" includes="license.txt"/>
+        </copy>
+
+        <mkdir dir="${deploy.home}/classes"/>
+        <copy todir="${deploy.home}/classes">
+            <fileset dir="${dist.home}/classes" includes="*.jar"/>
+            <fileset dir="${dist.home}/classes" includes="*.zip"/>
+            <fileset dir="${dist.home}" includes="convinceme.jar"/>
+        </copy>
+
+        <mkdir dir="${deploy.home}/arguments"/>
+        <copy todir="${deploy.home}/arguments">
+            <fileset dir="${basedir}/arguments" includes="icecubes.xml"/>
+        </copy>
+
+    </target>
+
+    <!-- ==================== Run Target ==================================
+
+    The "run" target runs the convince me program as a stand alone app.
+
+  -->
+
+    <target name="run"
+        description="development startup, occupies current shell; terminate with control-C"
+        depends="deploy">
+
+        <mkdir dir="${basedir}/logs"/>
+
+         <path id="deploy.classpath">
+            <fileset dir="${deploy.home}/classes">
+                <include name="**/*.jar"/>
+                <include name="**/*.zip"/>
+            </fileset>
+        </path>
+
+        <java classname="com.codeguild.convinceme.gui.swing.MainFrame"
+            maxmemory="128m"
+            failonerror="true"
+            fork="true"
+            dir="${deploy.home}"
+            >
+            <classpath refid="deploy.classpath"/>
+        </java>
+    </target>
+
+    <target name="runawt"
+        description="development startup, occupies current shell; terminate with control-C"
+        depends="deploy">
+
+        <mkdir dir="${basedir}/logs"/>
+
+         <path id="deploy.classpath">
+            <fileset dir="${deploy.home}/classes">
+                <include name="**/*.jar"/>
+                <include name="**/*.zip"/>
+            </fileset>
+        </path>
+
+        <java classname="com.codeguild.convinceme.gui.awt.ConvinceMeApplet"
+            maxmemory="128m"
+            failonerror="true"
+            fork="true"
+            dir="${deploy.home}"
+            >
+            <classpath refid="deploy.classpath"/>
+        </java>
+    </target>
+
+</project>
