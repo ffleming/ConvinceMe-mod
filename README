@@ -1,0 +1,19 @@
+This is the work-in-progress on ConvinceMe-mod, a modification to ConvinceMe.  I am distributing the source along with the Eclipse workspace.  To get started just open the workspace, fix the inevitable problems that crop up in Eclipse (I have to remind Eclipse to include the relevant bits: ConvinceMe Properties -> Java Build Path -> Check JRE System Library and dom4.jar).
+
+ConvinceMe was a Java implementation of Paul Thagard's ECHO model of arguments.  It was formerly used to analyze arguments as a teaching tool for students.  It is now a testbed for rapidly-iterated novel measures of coherence, connectionist properties, and so on.  Changes include:
+* Working simplicity weighting
+* Mutual exclusivity/joint contradiction
+* Streamlining
+* GUI enhancements
+* New coherence measure
+
+While the original ConvinceMe worked on Windows 95+ and OSX 10.2.1+, ConvinceMe-mod has only been tested on Windows 7, and only with the Eclipse IDE.  Its primary use is research for the dissertation "Truth, Belief, and Inquiry: A New Theory of Knowledge" by Forrest S Fleming.
+
+Please contact Forrest with bugs, comments, etc. at ffleming@gmail.com
+
+Thanks to Patricia Schank for writing the original ConvinceMe, and to Paul Thagard for creating the ECHO model.
+
+See license.txt for license information (hint: it's GPL)
+
+Convince Me Copyright 1992-2004 Patricia Schank
+ConvinceMe-mod Copyright 2013 Forrest Fleming
