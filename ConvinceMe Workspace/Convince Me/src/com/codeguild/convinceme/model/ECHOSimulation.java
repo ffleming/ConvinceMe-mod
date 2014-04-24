@@ -218,9 +218,9 @@ public class ECHOSimulation {
         display_string += "\n";
         display_string += satisfied.size() + " satisfied links, weighing " + satisfied_weight + "\n";
         display_string += unsatisfied.size() + " unsatisfied links, weighing " + unsatisfied_weight + "\n";
-        display_string += "Size-insensitive coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
-        display_string += "Size-sensitive coherence measure (satisfied / total): " + (satisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
-        display_string += "Size-sensitive coherence measure ((satisfied - unsatisfied) / total): " + (satisfied_weight - unsatisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+        display_string += "Size-sensitive coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
+        display_string += "Size-insensitive coherence measure (satisfied / total): " + (satisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+        display_string += "Size-insensitive coherence measure ((satisfied - unsatisfied) / total): " + (satisfied_weight - unsatisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
     	
     	mLog.append(display_string);
     	return display_string;
@@ -430,9 +430,9 @@ public class ECHOSimulation {
         }
         */
         
-        display_string += "Size-insensitive coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
-        display_string += "Size-sensitive coherence measure (satisfied / total): " + (satisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
-        display_string += "Size-sensitive coherence measure ((satisfied - unsatisfied) / total): " + (satisfied_weight - unsatisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+        display_string += "Size-sensitive coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
+        display_string += "Size-insensitive coherence measure (satisfied / total): " + (satisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+        display_string += "Size-insensitive coherence measure ((satisfied - unsatisfied) / total): " + (satisfied_weight - unsatisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
                 
         props.initWeights(); // delete weights, not needed now
         mLog.append(display_string);
