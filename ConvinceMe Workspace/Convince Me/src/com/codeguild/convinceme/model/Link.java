@@ -7,6 +7,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Arrays;
+
 import com.codeguild.convinceme.utils.Debug;
 /**
  * <p>Description: A serializable link .</p>
@@ -18,7 +19,6 @@ public class Link extends Object  {
 
     public static final int EXPLAIN = 0;
     public static final int CONTRADICT = 1;
-    public static final int COMPETE = 2;
 
     public static final String EXPLAIN_TEXT = "explains";
     public static final String JOINT_EXPLAIN_TEXT = "jointly explain";
@@ -36,6 +36,9 @@ public class Link extends Object  {
     public static final String EXPLAINED = "EXPLAINED";
     public static final String EXPLAINERS = "EXPLAINERS";
 
+    //For multiple competing with multiple
+    private int index_of_first_b_competitor;
+    
     public Link(PropositionVector props) {
         mProps = props;
     }
@@ -97,41 +100,21 @@ public class Link extends Object  {
     public void setWeights(float w, boolean divWeight, float simplicity_impact) {
     	//Good, doesn't care if we have contradictions or explanations, and so divides inhibition if divWeight is true
     	
-    	//This always returns 2 since this is a 2 part link. Oy.
     	int n = mProps.size();
     	float divided_weight = w;
         Proposition last = (Proposition) mProps.lastElement();
 
-        // divide weight among links?
-        //This doesn't allow SimplicityImpact to be set. Let's do it right!
-/*        if (divWeight) {
-            w = (float) w / (n - 1);
-        }
- */
-        /* if there are 2 propositions, n is 2
-         * 		and so we divide w by (2-1)^x, which is 1^x, which is 1
-         * if there are three propositions, n is 3
-         * 		and so we divide w by 2^x
-         * if simplicity_impact is 0, then there's no impact and we divide by (n-1)^0, which is 1 every time
-         */
         if(divWeight) {
         	divided_weight = (float) w / (float)Math.pow(n-1, simplicity_impact);
-        	/*float w2 = (float) w / (n - 1);
-        	Debug.println("Simplicity: " + simplicity_impact);
-            Debug.println("Co-explainers: " + (n-1));
-            Debug.println("w: " + w);
-            Debug.println(w == w2);*/
         }
         
         for (int i = 0; i < mProps.size() - 1; i++) {
-            // add symmetric weights
-//            getPropAt(i).addWeight(last, w);
-//            last.addWeight(getPropAt(i), w);
         	getPropAt(i).addWeight(last, divided_weight);
         	last.addWeight(getPropAt(i), divided_weight);
 
-            // if there are multiple propositions in the link,
+            // if there are multiple propositions in the explanation,
             // establish links between pairs
+        	//Do this by adding links between the first n-1 propositions of the explanation
             for (int j = i + 1; j < mProps.size() - 1; j++) {
                 if(mType == Link.EXPLAIN) {
                 	getPropAt(i).addWeight(getPropAt(j), w);
@@ -140,22 +123,7 @@ public class Link extends Object  {
             }
                   
         }
-        /*
-        Proposition root = null;
-        PropositionVector collection = null;
-        if(mType == Link.EXPLAIN) {
-        	root = getExplained();
-        	collection = getExplainers();
-        	for( int i = 0; i < collection.size(); i++) {
-        		getPropAt(i).addWeight(last, w);
-                last.addWeight(getPropAt(i), w);
-        	}
-        	
-        } else {
-        	root = getContradicted();
-        	collection = getJointContradictions();
-        }
-        */
+       
         mWeight = w;
     }
 
@@ -281,23 +249,6 @@ public class Link extends Object  {
         }
         Element root = DocumentFactory.getInstance().createElement(type);
         if (isContradiction()) {
-        	/*
-            Proposition start = (Proposition) mProps.firstElement();
-            type = Proposition.HYPOTHESIS_TYPE;
-            if (start.isData()) {
-                type = Proposition.DATA_TYPE;
-            }
-            Element cont = root.addElement(type);
-            cont.addAttribute(Proposition.ID, start.getLabel());
-
-            Proposition end = (Proposition) mProps.lastElement();
-            type = Proposition.HYPOTHESIS_TYPE;
-            if (end.isData()) {
-                type = Proposition.DATA_TYPE;
-            }
-            cont = root.addElement(type);
-            cont.addAttribute(Proposition.ID, end.getLabel());
-            */
         	Proposition contradicted = getContradicted();
             type = Proposition.HYPOTHESIS_TYPE;
             if (contradicted.isData()) {
@@ -372,19 +323,6 @@ public class Link extends Object  {
             // add explained last
             propVector.addElement(explained);
         } else {
-            // contradictions
-        	// ORIGINAL CODE 
-        	/*
-            link = new Link(CONTRADICT);
-            List props = root.elements();
-            for (Iterator iter = props.iterator(); iter.hasNext();) {
-                Element element = (Element) iter.next();
-                String label = element.attributeValue(Proposition.ID);
-                Proposition prop = arg.getProposition(label);
-                propVector.addElement(prop);
-            }*/
-        	
-            //MY CODE
             link = new Link(CONTRADICT);
             Proposition contradicted = null;
             List props = root.elements();

@@ -8,8 +8,7 @@
   <HYPOTHESIS ID="H5" TEXT="" RATING="na" X="80" Y="46" FACT="TRUE"/>
   <HYPOTHESIS ID="H6" TEXT="" RATING="na" X="130" Y="47" FACT="TRUE"/>
   <HYPOTHESIS ID="H7" TEXT="" RATING="na" X="82" Y="84" FACT="TRUE"/>
-  <HYPOTHESIS ID="H8" TEXT="I am infallible (all my beliefs are true)" RATING="na" X="380" Y="86" OPINION="TRUE" DISAGREE="TRUE"/>
-  <HYPOTHESIS ID="H9" TEXT="I am fallible (at least one of my beliefs is false)" RATING="na" X="293" Y="48" OPINION="TRUE"/>
+  <HYPOTHESIS ID="H9" TEXT="I am fallible (at least one of my beliefs is false)" RATING="na" X="298" Y="50" OPINION="TRUE"/>
   <DATA ID="E1" TEXT="" RATING="na" X="37" Y="182" RELIABILITY="3"/>
   <DATA ID="E2" TEXT="" RATING="na" X="132" Y="178" RELIABILITY="3"/>
   <DATA ID="E3" TEXT="I was wrong once" RATING="na" X="205" Y="146" FACT="TRUE" RELIABILITY="3"/>
@@ -44,14 +43,6 @@
   </EXPLAINS>
   <CONTRADICTS>
     <HYPOTHESIS ID="H9" CONTRADICTED="TRUE"/>
-    <HYPOTHESIS ID="H8"/>
-  </CONTRADICTS>
-  <CONTRADICTS>
-    <DATA ID="E3" CONTRADICTED="TRUE"/>
-    <HYPOTHESIS ID="H8"/>
-  </CONTRADICTS>
-  <CONTRADICTS>
-    <HYPOTHESIS ID="H9" CONTRADICTED="TRUE"/>
     <HYPOTHESIS ID="H1"/>
     <HYPOTHESIS ID="H2"/>
     <HYPOTHESIS ID="H3"/>
@@ -59,9 +50,5 @@
     <HYPOTHESIS ID="H5"/>
     <HYPOTHESIS ID="H6"/>
     <HYPOTHESIS ID="H7"/>
-  </CONTRADICTS>
-  <CONTRADICTS>
-    <DATA ID="E4" CONTRADICTED="TRUE"/>
-    <HYPOTHESIS ID="H8"/>
   </CONTRADICTS>
 </ARGUMENT>

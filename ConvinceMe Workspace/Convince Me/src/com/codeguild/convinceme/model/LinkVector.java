@@ -1,4 +1,5 @@
 package com.codeguild.convinceme.model;
+import com.codeguild.convinceme.utils.Debug;
 
 import java.io.Serializable;
 import java.util.Enumeration;
@@ -45,5 +46,15 @@ public class LinkVector extends Vector implements Serializable {
             ((Link) e.nextElement()).setWeights(w, divWeight);
         }
     }
+    
+    public float getWeight() {
+    	float ret = 0f;
+    	for (Enumeration e = this.elements(); e.hasMoreElements();) {
+            Link cur = (Link) e.nextElement();
+            ret += Math.abs(cur.getWeight());
+        }
+    	return ret;
+    }
+    
 }
 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ARGUMENT>
+  <HYPOTHESIS ID="H1" TEXT="" RATING="na" X="20" Y="33"/>
+  <HYPOTHESIS ID="H2" TEXT="" RATING="na" X="87" Y="28"/>
+  <DATA ID="E1" TEXT="" RATING="na" X="134" Y="140" RELIABILITY="3"/>
+  <EXPLAINS>
+    <DATA ID="E1" EXPLAINED="TRUE"/>
+    <HYPOTHESIS ID="H1"/>
+  </EXPLAINS>
+  <EXPLAINS>
+    <DATA ID="E1" EXPLAINED="TRUE"/>
+    <HYPOTHESIS ID="H2"/>
+  </EXPLAINS>
+</ARGUMENT>

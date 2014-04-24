@@ -18,7 +18,6 @@ public class ECHOSimulation {
 
     /*
      * ConvinceMe default values
-    
     public static final float DATA_EXCITATION = 0.055f;
     public static final float EXCITATION = 0.030f;
     public static final float INHIBITION = 0.060f;
@@ -30,10 +29,6 @@ public class ECHOSimulation {
     public static final float MAXACT = 1.00f;
     public static final float MINACT = -1.00f;
     public static final float SIMPLICITY = 1.00f;
-    
-    */
-    
-    /*
      * JavaECHO values
     public static final float DATA_EXCITATION = 0.040f;	
     public static final float EXCITATION = 0.040f;
@@ -50,10 +45,11 @@ public class ECHOSimulation {
     public static final float DATA_EXCITATION = 0.055f;
     public static final float EXCITATION = 0.030f;
     public static final float INHIBITION = 0.060f;
+    public static final float COMPETITION = 0.060f;
     public static final float THETA = 0.040f;
     public static final float START_VALUE = 0.010f;
     public static final float STOP_VALUE = 0.001f;
-    public static final int MAX_ITERATIONS = 200;
+    public static final int MAX_ITERATIONS = 500;
     public static final float ANALOGY_IMPACT = 1.000f;
     public static final float MAXACT = 1.00f;
     public static final float MINACT = -1.00f;
@@ -74,6 +70,7 @@ public class ECHOSimulation {
     private float mDataExcitation = DATA_EXCITATION;
     private float mExcitation = EXCITATION;
     private float mInhibition = INHIBITION;
+    private float mCompetition = COMPETITION;
     private float mDecay = THETA;
     private float mSimplicityImpact = SIMPLICITY;
     private boolean mCalculateCompetitors = CALCULATE_COMPETITORS;
@@ -127,7 +124,117 @@ public class ECHOSimulation {
     public String runECHO() {
         return runECHO(mExcitation, mInhibition, mDataExcitation, mDecay);
     }
+    
+    public String runExhaustive() {
+    	String display_string = "";
+    	mLog = new StringBuffer();
+        LinkVector explanationLinks = getExplanations();
+        LinkVector contradictionLinks = getContradictions();
+        Vector solutions = new Vector();
+        
+        explanationLinks.setWeights(mExcitation, true);  // divide excitation if joint explanation
+        contradictionLinks.setWeights(-mInhibition, true);  // divide inhibition if joint contradiction
+        
+        if( mCalculateCompetitors) {
+        	calculateCompetitors();
+        }
+        
+        mLog.append("Running exhaustive simulation\n");
+    	
+    	Object[] props = mArgument.getHypotheses().concatenate(mArgument.getData()).toArray();
+    	Float[] values = new Float[(int) Math.pow(2, props.length)];
+    	int maximum_index = 0;
+    	float maximum_value = 0f;
+    	int maximum_evidence = 0;
+    	
+    	for (int i = 0; i < (int) Math.pow(2, props.length); i++) {
+    		String binary_string =  int_to_binary(i, props.length);
+    		PropositionVector accepted = new PropositionVector();
+	        PropositionVector rejected = new PropositionVector();
+	        for (int j = 0; j < binary_string.length(); j++) {
+                if (binary_string.charAt(j) == '1') {
+                	accepted.add((Proposition) props[j]);
+                } else {
+                	rejected.add((Proposition)props[j]);
+                }
+            }
+	        Object[] sat_result = getSatisfied(accepted, rejected);
+	        LinkVector satisfied = (LinkVector) sat_result[0];
+	        Float satisfied_weight = (Float) sat_result[1];
+	        
+	        Object[] unsat_result = getUnsatisfied(accepted, rejected);
+	        LinkVector unsatisfied = (LinkVector) unsat_result[0];
+	        Float unsatisfied_weight = (Float) unsat_result[1];
+	        
+	        Float coherence_measure = satisfied_weight - unsatisfied_weight;
+	        
+	        int evidence_count = 0;
+	        for (Enumeration e = mArgument.getData().elements(); e.hasMoreElements();  ) {
+	        	Proposition cur_prop = (Proposition) e.nextElement();
+	        	if (accepted.contains(cur_prop)){
+	        		evidence_count++;
+	        	}
+	        }
+	        
+    	    if (coherence_measure >= maximum_value && evidence_count >= maximum_evidence) {
+            	maximum_index = i;
+            	maximum_value = coherence_measure;
+            	maximum_evidence = evidence_count;
+            }
+    	}  	
+    	
+    	String max_string =  int_to_binary(maximum_index, props.length);
+		PropositionVector accepted = new PropositionVector();
+        PropositionVector rejected = new PropositionVector();
+        for (int j = 0; j < max_string.length(); j++) {
+            if (max_string.charAt(j) == '1') {
+            	accepted.add((Proposition) props[j]);
+            } else {
+            	rejected.add((Proposition)props[j]);
+            }
+        }
+        
+        Object[] sat_result = getSatisfied(accepted, rejected);
+        LinkVector satisfied = (LinkVector) sat_result[0];
+        Float satisfied_weight = (Float) sat_result[1];
+        
+        Object[] unsat_result = getUnsatisfied(accepted, rejected);
+        LinkVector unsatisfied = (LinkVector) unsat_result[0];
+        Float unsatisfied_weight = (Float) unsat_result[1];
+        
+        
+    	display_string = display_string + "\nThe subset at " + max_string + " gives us " + maximum_value;
+        display_string += "\nPropositions Accepted: ";
+        for (Enumeration e = accepted.elements(); e.hasMoreElements(); ) {
+        	Proposition cur = (Proposition)e.nextElement();
+        	display_string += " " + cur.getLabel();
+        }
+        
+        display_string += "\nPropositions Rejected: ";
+        for (Enumeration e = rejected.elements(); e.hasMoreElements(); ) {
+        	Proposition cur = (Proposition)e.nextElement();
+           	display_string += " " + cur.getLabel();
+        }
+        display_string += "\n";
+        display_string += satisfied.size() + " satisfied links, weighing " + satisfied_weight + "\n";
+        display_string += unsatisfied.size() + " unsatisfied links, weighing " + unsatisfied_weight + "\n";
+        display_string += "Size-insensitive coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
+        display_string += "Size-sensitive coherence measure (satisfied / total): " + (satisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+        display_string += "Size-sensitive coherence measure ((satisfied - unsatisfied) / total): " + (satisfied_weight - unsatisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+    	
+    	mLog.append(display_string);
+    	return display_string;
+    }
 
+    private String int_to_binary(int number, int length) {
+    	String bin_string = Integer.toBinaryString(number);
+    	String ret = bin_string;
+    	for (int i = bin_string.length(); i < length; i++) {
+            ret = "0" + ret;
+        }
+    	return ret;
+    }
+    
     /**
      * Run echo simulation given parameters
      * @param excitation
@@ -145,7 +252,7 @@ public class ECHOSimulation {
         mEncoding = new Encoding(mArgument);
 
         mLog = new StringBuffer();
-        mLog.append("Running simulation with parameters: excitation = ");
+        mLog.append("Running connectionist simulation with parameters: excitation = ");
         mLog.append(excitation);
         mLog.append(", inhibition = ");
         mLog.append(inhibition);
@@ -153,13 +260,10 @@ public class ECHOSimulation {
         mLog.append(dataexcit);
         mLog.append(", decay = ");
         mLog.append(decay);
+        mLog.append(", competition = ");
+        mLog.append(mCompetition); 
         mLog.append("\n");
         //mLog.append(mEncoding.getText());
-
-        //Before we start, calculate competing explanations.  Ugh I don't want to write this BUT I WILL.
-        if( mCalculateCompetitors) {
-        	calculateCompetitors();
-        }
         
         // initialize proposition activations
         PropositionVector props = getHyps().concatenate(getData());
@@ -195,11 +299,16 @@ public class ECHOSimulation {
         // have already been set, weighted by reliability, above
         LinkVector explanationLinks = getExplanations();
         LinkVector contradictionLinks = getContradictions();
+        
         explanationLinks.setWeights(mExcitation, true);  // divide excitation if joint explanation
         
         // Normally there'd be no reason to divide inhibition.  Enabled multiple contradictions to make this possible
         contradictionLinks.setWeights(-mInhibition, true);  // divide inhibition if joint contradiction
-
+        
+        if( mCalculateCompetitors) {
+        	calculateCompetitors();
+        }
+        
         //Maybe I should add a special thing about competitors...I think I probably will.  Have to figure out how, though.  Right now it
         //seems like the best bet is to have a whole new type of Link, and have it contain two proposition vectors.  Actually that sounds
         // great and easy to implement.
@@ -210,18 +319,6 @@ public class ECHOSimulation {
         Enumeration ej, ei;
         Vector wv;
         Weight w;
-
-
-        mLog.append("Simulation weights:\n");
-        // report link weights
-		for (ej = props.elements(); ej.hasMoreElements();) {
-			current_proposition = (Proposition)ej.nextElement();
-			wv = current_proposition.getWeights();
-   	   		for (ei = wv.elements(); ei.hasMoreElements();) {
-				w = (Weight)ei.nextElement();
-				mLog.append("\t" + current_proposition.getLabel() + " to " + w.getProposition().getLabel() + ": " + w.getWeight() + "\n" );
-			}
-		}
 
         // run simulation and set activations
         for (mIter = 1; (mIter < MAX_ITERATIONS) && (change > STOP_VALUE); mIter++) {
@@ -236,12 +333,22 @@ public class ECHOSimulation {
                     net = net + (w.getWeight() * (w.getProposition().getActivation()));
                 }
                 thisact = current_proposition.getActivation();
+                
+                //net is the sum of (edge weight * activation) for each node we're connected to
+               
                 if (net > 0) {
                     temp = net * (MAXACT - thisact);
                 } else {
                     temp = net * (thisact - MINACT);
                 }
+                //Next activation is current activation (taking decay into account), plus temp
+                // temp is (1-absolute value of thisact) * net
+                
+                //So if there are 4 nodes around me connected at weight .03 and they all have activation .5,
+                // then net is 4 * .03 * .5 = .06
+                //If thisact is .4, then next act will be
                 nextact = (thisact * (1.0f - mDecay)) + temp;
+                
 				//Debug.println(propj.getLabel() + " " + thisact + " net: " + net + " temp: " + temp);
                 current_proposition.setNextActivation(nextact);
                 change = (Math.max(Math.abs(thisact - nextact), change));
@@ -252,8 +359,6 @@ public class ECHOSimulation {
             }
         }
 
-        //Don't delete weights yet silly
-
         // log simulation results
         mLog.append("Simulation finished. Iterations = ");
         mLog.append(String.valueOf(mIter));
@@ -263,7 +368,6 @@ public class ECHOSimulation {
 
         String display_string = "";
         
-        HashMap h = new HashMap();
         PropositionVector accepted = new PropositionVector();
         PropositionVector rejected = new PropositionVector();
         LinkVector satisfied = new LinkVector();
@@ -280,203 +384,59 @@ public class ECHOSimulation {
         		rejected.add(cur);
         	}
         }
-        
-        /*
-        mLog.append("Simulation weights:\n");
-        
-        //Report weights
-		
-        for (ej = props.elements(); ej.hasMoreElements();) {
-			current_proposition = (Proposition)ej.nextElement();
-			wv = current_proposition.getWeights();
-   	   		for (ei = wv.elements(); ei.hasMoreElements();) {
-				w = (Weight)ei.nextElement();
-				mLog.append("\t" + current_proposition.getLabel() + " to " + w.getProposition().getLabel() + ": " + w.getWeight() + "\n" );
-			}
-		}
-        */
-        		
+               		
 		// Make lists of satisfied/unsatisfied pairwise dispositions
         // For each proposition...
-		for (ej = props.elements(); ej.hasMoreElements();) {
-			current_proposition = (Proposition)ej.nextElement();
-			wv = current_proposition.getWeights();
-			//...Look at the weights it has.  For each of these weights, current_proposition is FROM and w.getProposition() is TO
-			for (ei = wv.elements(); ei.hasMoreElements();) {
-				w = (Weight)ei.nextElement();
-				
-				//If it's self-linked, ignore
-				if(w.getProposition() == current_proposition) {
-					continue;
-				}
-				
-				// pv is a link with the two relevant props
-				PropositionVector pv = new PropositionVector(current_proposition).concatenate(new PropositionVector(w.getProposition()));
-				Link l = new Link(pv);
-				
-				//Go through entire list of satisfied and unsatisfied links/dispositions. If we find any duplicates, set is_dup to true
-				boolean is_dup = false;
-				for(Enumeration e = satisfied.concatenate(unsatisfied).elements(); e.hasMoreElements(); ) {
-					Link cur_link = (Link) e.nextElement();
-					if (cur_link.isSamePair(l)) {
-						is_dup = true;
-						//Debug.println(l.getPropAt(0).getLabel() + "->" + l.getPropAt(1).getLabel() + " is the same as " + cur_link.getPropAt(0).getLabel() + "->" + cur_link.getPropAt(1).getLabel());
-					}
-				}
-				//If it's a dupe, pop on out of this loop before we do any adding to accepted/rejected lists
-				if(is_dup) {
-					continue;
-				}
-				
-				//Figure out if it's a contradiction or explanation
-				if (w.getWeight() > 0) { //explanation
-					l.setType(Link.EXPLAIN);
-					//Both accepted or both rejected means satisfied
-					if ( (accepted.contains(current_proposition) && accepted.contains(w.getProposition()) || ( rejected.contains(current_proposition) && rejected.contains(w.getProposition()) ) ) ) {						
-						satisfied.add(l);
-						satisfied_weight += Math.abs(w.getWeight());
-						//Debug.println("Added [" + l.getText() + "] to satisfied");
-					} else if ( (accepted.contains(current_proposition) && rejected.contains(w.getProposition()) || rejected.contains(current_proposition) && accepted.contains(w.getProposition()))) {
-						unsatisfied.add(l);
-						unsatisfied_weight += Math.abs(w.getWeight());
-						//Debug.println("Added [" + l.getText() + "] to unsatisfied");
-					}
-				}
-				if (w.getWeight() < 0) { //contradiction
-					l.setType(Link.CONTRADICT);
-					//Both accepted or both rejected means unsatisfied
-					if ( (accepted.contains(current_proposition) && accepted.contains(w.getProposition()) || rejected.contains(current_proposition) && rejected.contains(w.getProposition()))) {
-						unsatisfied.add(l);
-						unsatisfied_weight += Math.abs(w.getWeight());
-						//Debug.println("Added [" + l.getText() + "] to unsatisfied");
-					} else if ( (accepted.contains(current_proposition) && rejected.contains(w.getProposition()) || rejected.contains(current_proposition) && accepted.contains(w.getProposition()))) {
-						satisfied.add(l);
-						satisfied_weight += Math.abs(w.getWeight());
-						//Debug.println("Added [" + l.getText() + "] to satisfied");
-					}
-				}
-			}
-		}
+        Object[] sat_result = getSatisfied(accepted, rejected);
+        satisfied = (LinkVector) sat_result[0];
+        satisfied_weight = (Float) sat_result[1];
+        
+        Object[] unsat_result = getUnsatisfied(accepted, rejected);
+        unsatisfied = (LinkVector) unsat_result[0];
+        unsatisfied_weight = (Float) unsat_result[1];
+        
 		//Get the output ready
 		
         display_string += "\nPropositions Accepted: ";
+        float total = 0f;
         for (Enumeration e = accepted.elements(); e.hasMoreElements(); ) {
         	Proposition cur = (Proposition)e.nextElement();
+        	total = total + cur.getActivation();
         	display_string += " " + cur.getLabel() + " (" + cur.getActivationText() + "); ";
         }
-        
+        display_string += "\nMean activation:" + total / (float)accepted.size();
+        total = 0;
         display_string += "\nPropositions Rejected: ";
         for (Enumeration e = rejected.elements(); e.hasMoreElements(); ) {
         	Proposition cur = (Proposition)e.nextElement();
+        	total = total + cur.getActivation();
            	display_string += " " + cur.getLabel() + " (" + cur.getActivationText() + "); ";
         }
+        display_string += "\nMean activation:" + total / (float)rejected.size() + "\n";
         
-        display_string += "\n\nPairwise coherence measure: \n";
-
-        display_string += "Satisfied links:\n ";
-        for (Enumeration e = satisfied.elements(); e.hasMoreElements(); ) {
-        	Link cur = (Link)e.nextElement();
+        display_string += satisfied.size() + " satisfied links, weighing " + satisfied_weight + "\n";
+        /*
+		for (Enumeration e = satisfied.elements(); e.hasMoreElements(); ) {
+           	Link cur = (Link)e.nextElement();
         	display_string += "\t" + cur.getText() + "\n";
-        }
-        display_string += "Satisfied weight: " + satisfied_weight +"\n";
-        display_string += "\nUnsatisfied links:\n ";
+        } */
+        
+        display_string += unsatisfied.size() + " unsatisfied links, weighing " + unsatisfied_weight + "\n";
+
+        /*
         for (Enumeration e = unsatisfied.elements(); e.hasMoreElements(); ) {
         	Link cur = (Link)e.nextElement();
         	display_string += "\t" + cur.getText() + "\n";
-        }
-        display_string += "Unsatisfied weight: " + unsatisfied_weight +"\n";
-        display_string += "\n";
-        display_string += "Coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
-        
-        
-        
-
-        /*
-        //Clear list to tally with the other coherence measure!
-        satisfied.removeAllElements();
-        unsatisfied.removeAllElements();
-        satisfied_weight = 0;
-        unsatisfied_weight = 0;
-        
-        //If an explanation is either wholly in the rejected list or wholly in the accepted list
-        for (Enumeration e = getExplanations().elements(); e.hasMoreElements(); ) {
-        	Link cur_explanation = (Link)e.nextElement();
-        	//Check if all propositions in each explanation are either accepted or rejected.  If so, add to satisfied list. Otherwise add to unsatisfied
-        	if(accepted.containsAll(cur_explanation.getProps()) || rejected.containsAll(cur_explanation.getProps())) {
-        		satisfied.add(cur_explanation);
-        	} else {
-        		unsatisfied.add(cur_explanation);
-        	}
-        }
-        //Same thing for contradictions
-        for (Enumeration e = getContradictions().elements(); e.hasMoreElements(); ) {
-        	Link cur_contradiction = (Link)e.nextElement();
-        	
-        	//If we accept what's contradicted, we must reject everything that it contradicts
-        	if( accepted.contains(cur_contradiction.getContradicted()) ) {
-        		if( rejected.containsAll(cur_contradiction.getJointContradictions()) ) {
-        			satisfied.add(cur_contradiction);
-        		} else {
-        			unsatisfied.add(cur_contradiction);
-        		}
-        	} else if( rejected.contains(cur_contradiction.getContradicted()) ) {
-        		if( accepted.containsAll(cur_contradiction.getJointContradictions()) ) {
-        			satisfied.add(cur_contradiction);
-        		} else {
-        			unsatisfied.add(cur_contradiction);
-        		}
-        	}
-        
-        }
-        
-        display_string += "\n Systemic (per-explanation/contradiction) coherence measure:\n";
-
-        display_string += "\n\tSatisfied:\n ";
-        for (Enumeration e = satisfied.elements(); e.hasMoreElements(); ) {
-        	Link cur = (Link)e.nextElement();
-        	float to_add = (Math.abs(cur.getWeight()) * (cur.getProps().size()-1));
-        	satisfied_weight += to_add;
-        	display_string += "\t\t" + cur.getText() + " (" + to_add + ")\n";
-        }
-        
-        display_string += "\n\tUnsatisfied:\n ";
-        for (Enumeration e = unsatisfied.elements(); e.hasMoreElements(); ) {
-        	Link cur = (Link)e.nextElement();
-        	float to_add = (Math.abs(cur.getWeight()) * (cur.getProps().size()-1));
-        	unsatisfied_weight += to_add;
-        	display_string += "\t\t" + cur.getText() + " (" + to_add + ")\n";
-        }
-
-		display_string += "Satisfied weight: " + satisfied_weight +"\n";
-		display_string += "Unsatisfied weight: " + unsatisfied_weight +"\n";
-        display_string += "Coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
-        
-        /*
-        for (Enumeration e = props.elements(); e.hasMoreElements(); ) {
-        	current_proposition = (Proposition)e.nextElement();
-        	display_string = display_string + current_proposition.getLabel() + "\t" + current_proposition.getActivationText() + "\n";
         }
         */
         
+        display_string += "Size-insensitive coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
+        display_string += "Size-sensitive coherence measure (satisfied / total): " + (satisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+        display_string += "Size-sensitive coherence measure ((satisfied - unsatisfied) / total): " + (satisfied_weight - unsatisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+                
         props.initWeights(); // delete weights, not needed now
         mLog.append(display_string);
         return display_string;
-        /*
-        String s = "";
-        for (Enumeration j = props.elements(); j.hasMoreElements();) {
-            propj = (Proposition) j.nextElement();
-            s = s + propj.getLabel() + "      " + propj.getActivationText() + "           " +
-                    propj.getRatingText() + "\n";
-        }
-
-        mLog.append("      Activation    Rating\n");
-        mLog.append(s);
-
-        String correlationText = getCorrelationText(props);
-        mLog.append("Correlation between ratings and activations: ");
-        mLog.append(getCorrelationText(props));
-        return correlationText;
-        */
     }
 
     /**
@@ -525,33 +485,32 @@ public class ECHOSimulation {
         return corr;
     }
     
+    
+    //Calculates the competitors for the entire simulation.  Should be moved to Argument class.
     public void calculateCompetitors() {
-    	Debug.println("Calculating competititors");
-    	/* First, get all the hypotheses.  Then, get the hypotheses that explain the same thing.
-    	 * Then, check if there's a contradictory link between any of these explanations.
-    	 * If there are, build contradictory links.
-    	 */
     	LinkVector explanations = mArgument.mExplanations;
-    	for(Enumeration ej = explanations.elements(); ej.hasMoreElements(); ) {
-    		Link current_explanation = (Link) ej.nextElement();
+    	for(int i=0; i < explanations.size(); i++) {
+    		Link current_explanation = (Link) explanations.elementAt(i);
     		Proposition explained_prop = current_explanation.getExplained();
     		boolean competes = false;
-    		for(Enumeration ei = explanations.elements(); ei.hasMoreElements(); ) {
-    			Link potential_competing_exp = (Link) ei.nextElement();
+    		
+    		for(int j = i; j < explanations.size(); j++) {
+    			Link potential_competing_exp = (Link) explanations.elementAt(j);
     			if(current_explanation.equals(potential_competing_exp)) {
     				//They're the same - it doesn't compete with itself so keep on keepin' on
     				continue;
     			}
+
+    			
     			Proposition other_explained_prop = potential_competing_exp.getExplained();
     			
     			if (explained_prop.equals(other_explained_prop)) {
     				//They explain the same thing! Check to see if they're incompatible
-    				Debug.println("Does (" + current_explanation.getExplainers().getLabelsText() + ")->" + current_explanation.getExplained().getLabel() + " compete with (" + potential_competing_exp.getExplainers().getLabelsText() + ")->" + potential_competing_exp.getExplained().getLabel() + "?");
     				competes = areCompetitors(current_explanation, potential_competing_exp);
-    				Debug.println(competes ? "Yes" : "No");
-    				
+    				Debug.println("Does (" + current_explanation.getExplainers().getLabelsText() + ")->" + current_explanation.getExplained().getLabel() + " compete with (" + potential_competing_exp.getExplainers().getLabelsText() + ")->" + potential_competing_exp.getExplained().getLabel() + "?\n\t\t " + (competes ? "Yes" : "No"));    				
     				if (competes) {
     					//OK, the two explanations compete. So make inhibitory links between each pair.
+    					Debug.println("Setting (" + current_explanation.getExplainers().getLabelsText() + ")->" + current_explanation.getExplained().getLabel() + " as competing with (" + potential_competing_exp.getExplainers().getLabelsText() + ")->" + potential_competing_exp.getExplained().getLabel());
     					setCompetitionInhibitors(current_explanation, potential_competing_exp);
     				}
     				
@@ -563,39 +522,26 @@ public class ECHOSimulation {
     public void setCompetitionInhibitors(Link exp1, Link exp2) {
     	Enumeration e1 = exp1.getExplainers().elements();
     	Enumeration e2 = exp2.getExplainers().elements();
+
+    	//Divide competition weight equally among all of these links.
+    	float divided_weight = -mCompetition / (exp1.getExplainers().size() * exp2.getExplainers().size() );
     	
-    	//Let's see what happens if we just say that e1 contradicts e2...
-    	//This sets up a joint contradiction between the totality of e1 on the one hand and each individual e2 proposition on the other
-    	
-    	for( e1 = exp1.getExplainers().elements() ; e1.hasMoreElements(); ) {
-    		Proposition cur_explainer = (Proposition) e1.nextElement();
-    		PropositionVector cont_vector = exp2.getExplainers();
-    		cont_vector.add(cur_explainer);
-    		Link newContradiction = new Link(cont_vector, Link.CONTRADICT);
-    		mArgument.addContradiction(newContradiction);
+    	//Set up weights between all exp1's explainers with all exp2's explainers.
+    	for( e1 = exp1.getExplainers().elements(); e1.hasMoreElements(); ) {
+    		Proposition cur_prop = (Proposition) e1.nextElement();
+    		for( e2 = exp2.getExplainers().elements(); e2.hasMoreElements(); ) {
+    			Proposition other_prop = (Proposition) e2.nextElement();
+    			cur_prop.addWeight(other_prop, divided_weight);
+    			other_prop.addWeight(cur_prop, divided_weight);
+    		}
+    			
     	}
-    	/*
-    	//This sets up a 2-place contradiction between each element. INTENSE.
-    	for( e1 = exp1.getExplainers().elements() ; e1.hasMoreElements(); ) {
-    		Proposition cur_e1_prop = (Proposition) e1.nextElement();
-    		for( e2 = exp2.getExplainers().elements() ; e2.hasMoreElements(); ) {
-    	    	Proposition cur_e2_prop = (Proposition) e2.nextElement();
-    	    	PropositionVector cont_vector = new PropositionVector(cur_e1_prop);
-    	       	cont_vector.add(cur_e2_prop);
-    	       	Link newContradiction = new Link(cont_vector, Link.CONTRADICT);
-    	       	mArgument.addContradiction(newContradiction);
-    	    }
-    	}
-    	*/
     }
     
     public boolean areCompetitors (Link exp1, Link exp2) {
-    	LinkVector all_contradictions = mArgument.mContradictions;
-    	Enumeration e1 = exp1.getExplainers().elements();
-    	Enumeration e2 = exp2.getExplainers().elements();
-    	Enumeration c = all_contradictions.elements();
-    	
-    	//I think this is unneeded, but w/e
+    	if (exp1.equals(exp2)) {
+    		return false;
+    	}
     	if ( exp1.getExplainers().contains(exp2.getExplained())) {
     		return false;
     	}
@@ -603,39 +549,109 @@ public class ECHOSimulation {
     		return false;
     	}
     	
-    	//For every explainer in exp1
-    	for( e1 = exp1.getExplainers().elements() ; e1.hasMoreElements(); ) {
-    		Proposition cur_prop = (Proposition) e1.nextElement();
-
-    		//Check to see if it's in a contradiction with any explainer in exp2
-    		//Do this by iterating through each contradiction and checking to see that if the CONTRADICTED of the contradiction is one of exp1's explainers
-    		for (c = all_contradictions.elements(); c.hasMoreElements() ; ) {
-    			Link cur_contradiction = (Link) c.nextElement();
-    			
-    			//Check if the contradiction's CONTRADICTED is an explainer of exp1
-    			if(cur_contradiction.getContradicted() == cur_prop) {
-    				//If any of exp2's explainers is in the JOINT CONTRADICTIONS part of the current contradiction, then we have a contradiction 
-    				for(e2 = exp2.getExplainers().elements(); e2.hasMoreElements() ; ) {
-    					Proposition exp2_explainer_prop = (Proposition) e2.nextElement();
-    					if (cur_contradiction.getJointContradictions().contains(exp2_explainer_prop)) {
-    						return true;
-    					}
-    				}
-    			} else if (cur_contradiction.getJointContradictions().contains(cur_prop)) {
-    				//The opposite of the above: the current exp1 explainer is in the CONTRADICTING section of the current contradiction
-    				//Check to see if any exp2's explainers are in the CONTRADICTED section
-    				for(e2 = exp2.getExplainers().elements(); e2.hasMoreElements() ; ) {
-    					Proposition exp2_explainer_prop = (Proposition) e2.nextElement();
-    					if (cur_contradiction.getContradicted() == exp2_explainer_prop) {
-    						return true;
-    					}
-    				}
-    				
-    			}
-    		}
-    	}
-    	
     	return true;
+    }
+    
+    //This looks weird and all, but these two operate over WEIGHTS, not EXPLANATIONS.  This is because we want the links internal to competitions,
+    // joint explanations, etc. to be reported as satisfied or unsatisfied.  
+    private Object[] getSatisfied(PropositionVector accepted, PropositionVector rejected) {
+    	PropositionVector props = mArgument.mHypotheses;
+    	LinkVector satisfied = new LinkVector();
+    	float satisfied_weight = 0f;
+    	
+    	for (Enumeration ej = props.elements(); ej.hasMoreElements();) {
+			Proposition current_proposition = (Proposition)ej.nextElement();
+			Vector wv = current_proposition.getWeights();
+			//...Look at the weights it has.  For each of these weights, current_proposition is FROM and w.getProposition() is TO
+			for (Enumeration ei = wv.elements(); ei.hasMoreElements();) {
+				Weight w = (Weight)ei.nextElement();
+				
+				//If it's self-linked, ignore
+				if(w.getProposition() == current_proposition) {
+					continue;
+				}
+				
+				// pv is a link with the two relevant props
+				PropositionVector pv = new PropositionVector(current_proposition).concatenate(new PropositionVector(w.getProposition()));
+				Link l = new Link(pv);
+				
+				//Go through entire list of satisfied and unsatisfied links/dispositions. If we find any duplicates, set is_dup to true
+				//That is, if the link we're looking at is already in the satisfied or unsatisfied list, no need to add it again
+				if(satisfied.contains(l)) {
+					continue;
+				}
+				
+				//Figure out if it's a contradiction or explanation
+				if (w.getWeight() > 0) { //explanation
+					l.setType(Link.EXPLAIN);
+					//Both accepted or both rejected means satisfied
+					if ( (accepted.contains(current_proposition) && accepted.contains(w.getProposition()) || ( rejected.contains(current_proposition) && rejected.contains(w.getProposition()) ) ) ) {						
+						satisfied.add(l);
+						satisfied_weight += Math.abs(w.getWeight());
+					} 
+				}
+				if (w.getWeight() < 0) { //contradiction or competition
+					l.setType(Link.CONTRADICT);
+					//Both accepted or both rejected means unsatisfied
+					if ( (accepted.contains(current_proposition) && rejected.contains(w.getProposition()) || rejected.contains(current_proposition) && accepted.contains(w.getProposition()))) {
+						satisfied.add(l);
+						satisfied_weight += Math.abs(w.getWeight());
+					}
+				}
+			}
+		}
+    	Object[] ret = {satisfied, satisfied_weight};
+    	return ret;
+    }
+
+    private Object[] getUnsatisfied(PropositionVector accepted, PropositionVector rejected) {
+    	PropositionVector props = mArgument.mHypotheses;
+    	LinkVector unsatisfied = new LinkVector();
+    	float unsatisfied_weight = 0f;
+    	
+    	for (Enumeration ej = props.elements(); ej.hasMoreElements();) {
+			Proposition current_proposition = (Proposition)ej.nextElement();
+			Vector wv = current_proposition.getWeights();
+			//...Look at the weights it has.  For each of these weights, current_proposition is FROM and w.getProposition() is TO
+			for (Enumeration ei = wv.elements(); ei.hasMoreElements();) {
+				Weight w = (Weight)ei.nextElement();
+				
+				//If it's self-linked, ignore
+				if(w.getProposition() == current_proposition) {
+					continue;
+				}
+				
+				// pv is a link with the two relevant props
+				PropositionVector pv = new PropositionVector(current_proposition).concatenate(new PropositionVector(w.getProposition()));
+				Link l = new Link(pv);
+				
+				//Go through entire list of satisfied and unsatisfied links/dispositions. If we find any duplicates, set is_dup to true
+				//That is, if the link we're looking at is already in the satisfied or unsatisfied list, no need to add it again
+				if(unsatisfied.contains(l)) {
+					continue;
+				}
+				
+				//Figure out if it's a contradiction or explanation
+				if (w.getWeight() > 0) { //explanation
+					l.setType(Link.EXPLAIN);
+					//Both accepted or both rejected means satisfied
+					if ( (accepted.contains(current_proposition) && rejected.contains(w.getProposition()) || rejected.contains(current_proposition) && accepted.contains(w.getProposition()))) {
+						unsatisfied.add(l);
+						unsatisfied_weight += Math.abs(w.getWeight());
+					}
+				}
+				if (w.getWeight() < 0) { //contradiction or competition
+					l.setType(Link.CONTRADICT);
+					//Both accepted or both rejected means unsatisfied
+					if ( (accepted.contains(current_proposition) && accepted.contains(w.getProposition()) || rejected.contains(current_proposition) && rejected.contains(w.getProposition()))) {
+						unsatisfied.add(l);
+						unsatisfied_weight += Math.abs(w.getWeight());
+					}
+				}
+			}
+		}
+    	Object[] ret = {unsatisfied, unsatisfied_weight};
+    	return ret;
     }
     
 }

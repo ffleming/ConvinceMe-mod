@@ -278,6 +278,14 @@ public class MainFrame extends Configuration {
                 mParameterPanel.getDecay());
         mTabbedPane.setSelectedIndex(3);
     }
+    
+    public void runExhaustive() {
+        runExhaustive(mParameterPanel.getExcitation(),
+                mParameterPanel.getInhibition(),
+                mParameterPanel.getDataExcitation(),
+                mParameterPanel.getDecay());
+        mTabbedPane.setSelectedIndex(3);
+    }
 
     public void showCorrelationMessage(String message) {
         JOptionPane.showMessageDialog(mAppWindow, message, "Simulation Results", JOptionPane.INFORMATION_MESSAGE);
@@ -487,11 +495,20 @@ public class MainFrame extends Configuration {
         // simulation menu
         JMenu simulationMenu = new JMenu("Simulation");
 
-        menuItem = new JMenuItem("Run");
+        menuItem = new JMenuItem("Run Connectionist Solver");
         menuItem.setAccelerator(KeyStroke.getKeyStroke('R', java.awt.Event.CTRL_MASK, false));
         menuItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 runECHO();
+           }
+        });
+        simulationMenu.add(menuItem);
+        
+        menuItem = new JMenuItem("Run Exhaustive Solver");
+        menuItem.setAccelerator(KeyStroke.getKeyStroke('T', java.awt.Event.CTRL_MASK, false));
+        menuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                runExhaustive();
            }
         });
         simulationMenu.add(menuItem);

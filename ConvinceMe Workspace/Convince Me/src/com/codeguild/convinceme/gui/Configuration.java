@@ -75,6 +75,23 @@ public class Configuration {
         showCorrelationMessage(message);
         */
     }
+    
+    public void runExhaustive(float excit, float inhib, float dataexcit, float decay) {
+        ECHOSimulation simulation = new ECHOSimulation(excit,
+                                                       inhib,
+                                                       dataexcit,
+                                                       decay,
+                                                       mArgument);
+        String result = simulation.runExhaustive();
+        log(simulation.getLog());
+        updatePanels();
+        /*
+         String message = "Correlation between you and ECHO: "
+                        + result
+                        + ".\n See log for more information.";
+        showCorrelationMessage(message);
+        */
+    }
 
     /**
      * Update all panels after adding/deleting. Override me

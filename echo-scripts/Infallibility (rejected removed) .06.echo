@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ARGUMENT>
+  <HYPOTHESIS ID="H1" TEXT="I exist" RATING="na" X="221" Y="22" FACT="TRUE" MEMORY="TRUE"/>
+  <HYPOTHESIS ID="H2" TEXT="H1 is true" RATING="na" X="223" Y="153" FACT="TRUE" MEMORY="TRUE"/>
+  <DATA ID="E1" TEXT="Consciousness, introspection, etc." RATING="na" X="74" Y="92" FACT="TRUE" MEMORY="TRUE" RELIABILITY="3"/>
+  <EXPLAINS>
+    <HYPOTHESIS ID="H2" EXPLAINED="TRUE"/>
+    <HYPOTHESIS ID="H1"/>
+  </EXPLAINS>
+  <EXPLAINS>
+    <DATA ID="E1" EXPLAINED="TRUE"/>
+    <HYPOTHESIS ID="H1"/>
+  </EXPLAINS>
+</ARGUMENT>

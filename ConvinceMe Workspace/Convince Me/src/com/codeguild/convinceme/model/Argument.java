@@ -30,7 +30,7 @@ public class Argument extends Object {
     public static final String ARGUMENT = "ARGUMENT";
     public static final String NOTES = "NOTES";
     public static final String TRUE = "TRUE";
-
+    
     public Argument() {
         mHypotheses = new PropositionVector();
         mData = new PropositionVector();
@@ -122,7 +122,7 @@ public class Argument extends Object {
     public LinkVector getExps() {
         return mExplanations;
     }
-
+    
     /**
      * @return All contradictions in the current argument
      */
@@ -217,7 +217,7 @@ public class Argument extends Object {
     public void addContradiction(Link cont) {
         mContradictions.addElement(cont);
     }
-
+    
     /**
      * Delete explanations from the argument
      * @param indexes indices of Proposition to delete
