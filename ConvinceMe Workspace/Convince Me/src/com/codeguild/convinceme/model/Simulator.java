@@ -12,7 +12,7 @@ import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
  * <p>Company: CodeGuild, Inc. </p>
  * @author Patti Schank
  */
-public class ECHOSimulation {
+public class Simulator {
 
     public static final float VALERR = -999.0f; // error code from getval()
 
@@ -77,7 +77,14 @@ public class ECHOSimulation {
     
     private Argument mArgument;
 
-    public ECHOSimulation(float excitation, float inhibition, float dataexcit, float decay,
+    /*
+     * @param excitation excitation (ie positive value for explanatory support/positive constraints)
+     * @param inhibition inhibition (ie negative value for contradiction/negative constraints)
+     * @param datexcit data excitation (ie how much activation 'flows' from data/SEU nodes)
+     * @param decay decay (ie how much the network settles between steps)
+     * @param argument The argument to simulate
+     */
+    public Simulator(float excitation, float inhibition, float dataexcit, float decay,
                           Argument argument) {
         mExcitation = excitation;
         mInhibition = inhibition;
@@ -87,32 +94,51 @@ public class ECHOSimulation {
     }
 
     /**
-     * Convenience method if you want to use the default parameter values
+     * Convenience method for defaults
+     * @param argument The argument to simulate
      */
-    public ECHOSimulation(Argument argument) {
+    public Simulator(Argument argument) {
         this(EXCITATION, INHIBITION, DATA_EXCITATION, THETA, argument);
     }
 
+    /*
+     * @return The ECHOScript encoding of the argument
+     */
     public Encoding getEncoding() {
         return mEncoding;
     }
 
+    /*
+     * @return The argument's hypotheses
+     */
     public PropositionVector getHyps() {
         return mArgument.mHypotheses;
     }
 
+    /*
+     * @return The argument's data
+     */
     public PropositionVector getData() {
         return mArgument.mData;
     }
 
+    /*
+     * @return The explanations in the argument
+     */
     public LinkVector getExplanations() {
         return mArgument.mExplanations;
     }
-
+    
+    /*
+     * @return The contradictions in the argument
+     */
     public LinkVector getContradictions() {
         return mArgument.mContradictions;
     }
-
+   
+    /*
+     * @return The log as a string
+     */
     public String getLog() {
         return mLog.toString();
     }
@@ -132,8 +158,8 @@ public class ECHOSimulation {
         LinkVector contradictionLinks = getContradictions();
         Vector solutions = new Vector();
         
-        explanationLinks.setWeights(mExcitation, true);  // divide excitation if joint explanation
-        contradictionLinks.setWeights(-mInhibition, true);  // divide inhibition if joint contradiction
+        explanationLinks.setWeights(mExcitation, true, mSimplicityImpact);  // divide excitation if joint explanation
+        contradictionLinks.setWeights(-mInhibition, true, mSimplicityImpact);  // divide inhibition if joint contradiction
         
         if( mCalculateCompetitors) {
         	calculateCompetitors();
@@ -147,6 +173,10 @@ public class ECHOSimulation {
     	float maximum_value = 0f;
     	int maximum_evidence = 0;
     	
+    	//Every number is translated to a binary string of length N, where N is the number of props (data + hypotheses)
+    	//If a corresponding proposition gets a 1, it's added to the list of accepted propositions.  0s are added to rejected
+    	//Then, check for the coherence measure. Maximize accepted evidence if there are ties for.
+    	//Runs in 2^N, it is sad and slow.
     	for (int i = 0; i < (int) Math.pow(2, props.length); i++) {
     		String binary_string =  int_to_binary(i, props.length);
     		PropositionVector accepted = new PropositionVector();
@@ -183,6 +213,7 @@ public class ECHOSimulation {
             }
     	}  	
     	
+    	//Recreate the accepted and rejected lists from the binary string that maximized coherence
     	String max_string =  int_to_binary(maximum_index, props.length);
 		PropositionVector accepted = new PropositionVector();
         PropositionVector rejected = new PropositionVector();
@@ -202,30 +233,16 @@ public class ECHOSimulation {
         LinkVector unsatisfied = (LinkVector) unsat_result[0];
         Float unsatisfied_weight = (Float) unsat_result[1];
         
+        SimulationResult result = new SimulationResult(accepted, rejected, satisfied, unsatisfied, satisfied_weight, unsatisfied_weight);
+        display_string = result.getDisplayString();
         
-    	display_string = display_string + "\nThe subset at " + max_string + " gives us " + maximum_value;
-        display_string += "\nPropositions Accepted: ";
-        for (Enumeration e = accepted.elements(); e.hasMoreElements(); ) {
-        	Proposition cur = (Proposition)e.nextElement();
-        	display_string += " " + cur.getLabel();
-        }
-        
-        display_string += "\nPropositions Rejected: ";
-        for (Enumeration e = rejected.elements(); e.hasMoreElements(); ) {
-        	Proposition cur = (Proposition)e.nextElement();
-           	display_string += " " + cur.getLabel();
-        }
-        display_string += "\n";
-        display_string += satisfied.size() + " satisfied links, weighing " + satisfied_weight + "\n";
-        display_string += unsatisfied.size() + " unsatisfied links, weighing " + unsatisfied_weight + "\n";
-        display_string += "Size-sensitive coherence measure: " + (satisfied_weight - unsatisfied_weight) + "\n";
-        display_string += "Size-insensitive coherence measure (satisfied / total): " + (satisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
-        display_string += "Size-insensitive coherence measure ((satisfied - unsatisfied) / total): " + (satisfied_weight - unsatisfied_weight) / (satisfied_weight + unsatisfied_weight)+ "\n";
+        //display_string = display_string + "\nThe subset at " + max_string + " gives us " + maximum_value;
     	
     	mLog.append(display_string);
     	return display_string;
     }
 
+    //Returns a binary string of number, padded with 0s to be length characters long. Lets us use string operations isntead of bit oeprations
     private String int_to_binary(int number, int length) {
     	String bin_string = Integer.toBinaryString(number);
     	String ret = bin_string;
@@ -249,7 +266,7 @@ public class ECHOSimulation {
         mDataExcitation = dataexcit;
         mDecay = decay;
 
-        mEncoding = new Encoding(mArgument);
+//        mEncoding = new Encoding(mArgument);
 
         mLog = new StringBuffer();
         mLog.append("Running connectionist simulation with parameters: excitation = ");
@@ -300,19 +317,15 @@ public class ECHOSimulation {
         LinkVector explanationLinks = getExplanations();
         LinkVector contradictionLinks = getContradictions();
         
-        explanationLinks.setWeights(mExcitation, true);  // divide excitation if joint explanation
+        explanationLinks.setWeights(mExcitation, true, mSimplicityImpact);  // divide excitation if joint explanation
         
         // Normally there'd be no reason to divide inhibition.  Enabled multiple contradictions to make this possible
-        contradictionLinks.setWeights(-mInhibition, true);  // divide inhibition if joint contradiction
+        contradictionLinks.setWeights(-mInhibition, true, mSimplicityImpact);  // divide inhibition if joint contradiction
         
         if( mCalculateCompetitors) {
         	calculateCompetitors();
         }
-        
-        //Maybe I should add a special thing about competitors...I think I probably will.  Have to figure out how, though.  Right now it
-        //seems like the best bet is to have a whole new type of Link, and have it contain two proposition vectors.  Actually that sounds
-        // great and easy to implement.
-        
+           
         float change = 99, net = 0, temp, nextact, thisact, thischange;
         Proposition current_proposition;
 
@@ -440,54 +453,9 @@ public class ECHOSimulation {
     }
 
     /**
-     * Get the text description of the correlation between simulation
-     * results and belief ratings
-     * @param pv the proposition vector
-     * @return The text description of the correlation
+     * Calculates competing explanations in the argument and sets the appropriate weights in the network 
      */
-    public String getCorrelationText(PropositionVector pv) {
-        String result;
-        double corr = getCorrelation(pv);
-        if ((corr < -1) || (corr > 1)) {
-            result = "Not enough ratings, or no variation in ratings.";
-        } else {
-            result = String.valueOf(Math.round(corr * 100.0) / 100.0);
-        }
-        return result;
-    }
-
-    /**
-     * Get the correlation between simulation results and belief ratings
-     * @param pv the proposition vector
-     * @return The correlation
-     */
-    public double getCorrelation(PropositionVector pv) {
-        double sumx1 = 0, sumx2 = 0, sumy1 = 0, sumy2 = 0, sumxy = 0,
-                total = 0, r, a, numerator, d1, d2, corr;
-        Proposition p;
-        for (Enumeration e = pv.elements(); e.hasMoreElements();) {
-            p = (Proposition) e.nextElement();
-            r = (double) p.getRating();
-            a = (double) p.getActivation();
-            if (p.isValid((float) r) && p.isValid((float) a)) {
-                sumx1 += r;
-                sumy1 += a;
-                sumx2 += r * r;
-                sumy2 += a * a;
-                sumxy += r * a;
-                total += 1;
-            }
-        }
-        numerator = (total * sumxy) - (sumx1 * sumy1);
-        d1 = Math.sqrt((total * sumx2) - (sumx1 * sumx1));
-        d2 = Math.sqrt((total * sumy2) - (sumy1 * sumy1));
-        corr = numerator / (d1 * d2);
-        return corr;
-    }
-    
-    
-    //Calculates the competitors for the entire simulation.  Should be moved to Argument class.
-    public void calculateCompetitors() {
+    private void calculateCompetitors() {
     	LinkVector explanations = mArgument.mExplanations;
     	for(int i=0; i < explanations.size(); i++) {
     		Link current_explanation = (Link) explanations.elementAt(i);
@@ -501,16 +469,15 @@ public class ECHOSimulation {
     				continue;
     			}
 
-    			
     			Proposition other_explained_prop = potential_competing_exp.getExplained();
     			
     			if (explained_prop.equals(other_explained_prop)) {
     				//They explain the same thing! Check to see if they're incompatible
     				competes = areCompetitors(current_explanation, potential_competing_exp);
-    				Debug.println("Does (" + current_explanation.getExplainers().getLabelsText() + ")->" + current_explanation.getExplained().getLabel() + " compete with (" + potential_competing_exp.getExplainers().getLabelsText() + ")->" + potential_competing_exp.getExplained().getLabel() + "?\n\t\t " + (competes ? "Yes" : "No"));    				
+    				//Debug.println("Does (" + current_explanation.getExplainers().getLabelsText() + ")->" + current_explanation.getExplained().getLabel() + " compete with (" + potential_competing_exp.getExplainers().getLabelsText() + ")->" + potential_competing_exp.getExplained().getLabel() + "?\n\t\t " + (competes ? "Yes" : "No"));    				
     				if (competes) {
     					//OK, the two explanations compete. So make inhibitory links between each pair.
-    					Debug.println("Setting (" + current_explanation.getExplainers().getLabelsText() + ")->" + current_explanation.getExplained().getLabel() + " as competing with (" + potential_competing_exp.getExplainers().getLabelsText() + ")->" + potential_competing_exp.getExplained().getLabel());
+    					//Debug.println("Setting (" + current_explanation.getExplainers().getLabelsText() + ")->" + current_explanation.getExplained().getLabel() + " as competing with (" + potential_competing_exp.getExplainers().getLabelsText() + ")->" + potential_competing_exp.getExplained().getLabel());
     					setCompetitionInhibitors(current_explanation, potential_competing_exp);
     				}
     				
@@ -519,7 +486,12 @@ public class ECHOSimulation {
     	}
     }
    
-    public void setCompetitionInhibitors(Link exp1, Link exp2) {
+    /**
+     * Given two competing explanations, set the weights in the neural network to reflect the competition
+     * @param exp1 First explanation as link
+     * @param exp2 Second explanation as link 
+     */
+    private void setCompetitionInhibitors(Link exp1, Link exp2) {
     	Enumeration e1 = exp1.getExplainers().elements();
     	Enumeration e2 = exp2.getExplainers().elements();
 
@@ -537,8 +509,13 @@ public class ECHOSimulation {
     			
     	}
     }
-    
-    public boolean areCompetitors (Link exp1, Link exp2) {
+    /**
+     * Given two explanations, determine if they are competitors
+     * @param exp1 First explanations as Link
+     * @param exp2 Second explanations as Link
+     * @return true or false
+     */
+    private boolean areCompetitors (Link exp1, Link exp2) {
     	if (exp1.equals(exp2)) {
     		return false;
     	}
@@ -551,9 +528,11 @@ public class ECHOSimulation {
     	
     	return true;
     }
-    
-    //This looks weird and all, but these two operate over WEIGHTS, not EXPLANATIONS.  This is because we want the links internal to competitions,
-    // joint explanations, etc. to be reported as satisfied or unsatisfied.  
+    /**
+     * Given accepted and rejected propositions, determine satisfied constraints and their weight
+     * @param accepted, rejected PropositionVectors of accepted and rejected propositions
+     * @return An array consisting of [satisfied, weight] where unsatisfied is a LinkVector of unsatisfied links and weight is their collective weight
+     */
     private Object[] getSatisfied(PropositionVector accepted, PropositionVector rejected) {
     	PropositionVector props = mArgument.mHypotheses;
     	LinkVector satisfied = new LinkVector();
@@ -603,7 +582,11 @@ public class ECHOSimulation {
     	Object[] ret = {satisfied, satisfied_weight};
     	return ret;
     }
-
+    /**
+     * Given accepted and rejected propositions, determine unsatisfied constraints and their weight
+     * @param accepted, rejected PropositionVectors of accepted and rejected propositions
+     * @return An array consisting of [unsatisfied, weight] where unsatisfied is a LinkVector of unsatisfied links and weight is their collective weight
+     */
     private Object[] getUnsatisfied(PropositionVector accepted, PropositionVector rejected) {
     	PropositionVector props = mArgument.mHypotheses;
     	LinkVector unsatisfied = new LinkVector();

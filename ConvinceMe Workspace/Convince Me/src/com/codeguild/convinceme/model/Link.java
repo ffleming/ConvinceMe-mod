@@ -37,7 +37,12 @@ public class Link extends Object  {
     public static final String EXPLAINERS = "EXPLAINERS";
 
     //For multiple competing with multiple
+    /* TODO
+    
     private int index_of_first_b_competitor;
+    
+    */
+    
     
     public Link(PropositionVector props) {
         mProps = props;
@@ -93,8 +98,11 @@ public class Link extends Object  {
      */
     
     //Convenience class so I don't have to re-write what's below too badly.
+    //I don't like this - shouldn't mess around in ECHOSimulation for this.
     public void setWeights(float w, boolean divWeight) {
-    	setWeights(w, divWeight, ECHOSimulation.SIMPLICITY);
+    	//if divweight is false, simplicity impact is 0.  It's a joke! But really we could use anything, since it won't be used at all.
+    	assert divWeight == false;
+    	setWeights(w, divWeight, 0);
     }
     
     public void setWeights(float w, boolean divWeight, float simplicity_impact) {
@@ -158,7 +166,11 @@ public class Link extends Object  {
         }
         return prop;
     }
-    
+    /**
+     * Get the contradictory links in this element
+     * e.g. if P1 P2 jointly contradict P3 then it would return P1 and P2
+     * @return A vector of contradicting propositions
+     */
     public PropositionVector getJointContradictions() {
         PropositionVector joint_cons = new PropositionVector();
         int i = 0;
@@ -170,22 +182,23 @@ public class Link extends Object  {
     }
 
     /**
-     * Get the target of this link, e.g., if the link is
-     * P1 explains P2 then it would return P2
+     * Get the target of this link, e.g., if the link is P1 explains P2 then it would return P2
      * @return The last proposi
      */
     public Proposition getExplained() {
         return (Proposition) mProps.lastElement();
     }
 
-    //Same, for contradictions
+    /**
+     * Get the target of this link, e.g., if the link is P1 contradicts P2 then it would return P2
+     * @return The last proposition
+     */
     public Proposition getContradicted() {
         return (Proposition) mProps.lastElement();
     }
     
     /**
-     * Get the text encoding of this Link, e.g.
-     * P1 explains P2
+     * Get the text encoding of this Link, e.g. 'P1 explains P2'
      * @return The text encoding
      */
     public String getText() {

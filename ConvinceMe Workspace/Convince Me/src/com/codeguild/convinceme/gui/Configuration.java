@@ -60,7 +60,7 @@ public class Configuration {
      * Run the ECHO simulation, log what happens, and tell the user
      */
     public void runECHO(float excit, float inhib, float dataexcit, float decay) {
-        ECHOSimulation simulation = new ECHOSimulation(excit,
+        Simulator simulation = new Simulator(excit,
                                                        inhib,
                                                        dataexcit,
                                                        decay,
@@ -77,7 +77,7 @@ public class Configuration {
     }
     
     public void runExhaustive(float excit, float inhib, float dataexcit, float decay) {
-        ECHOSimulation simulation = new ECHOSimulation(excit,
+        Simulator simulation = new Simulator(excit,
                                                        inhib,
                                                        dataexcit,
                                                        decay,

@@ -1,6 +1,6 @@
 package com.codeguild.convinceme.gui.swing;
 
-import com.codeguild.convinceme.model.ECHOSimulation;
+import com.codeguild.convinceme.model.Simulator;
 import com.codeguild.convinceme.utils.Debug;
 
 import javax.swing.*;
@@ -23,11 +23,11 @@ public class ParameterPanel extends JPanel {
 
     public ParameterPanel() {
         // set intial values
-        mExcitation = ECHOSimulation.EXCITATION;
-        mInhibition = ECHOSimulation.INHIBITION;
-        mDataExcitation = ECHOSimulation.DATA_EXCITATION;
-        mDecay = ECHOSimulation.THETA;
-        mSimplicityImpact = ECHOSimulation.SIMPLICITY;
+        mExcitation = Simulator.EXCITATION;
+        mInhibition = Simulator.INHIBITION;
+        mDataExcitation = Simulator.DATA_EXCITATION;
+        mDecay = Simulator.THETA;
+        mSimplicityImpact = Simulator.SIMPLICITY;
         
         // create the sliders
         mExcitationSlider = createSlider(mExcitation, "Excitation");
@@ -83,11 +83,11 @@ public class ParameterPanel extends JPanel {
     }
 
     public void useDefaults() {
-        mExcitationSlider.setValue(intValue(ECHOSimulation.EXCITATION, 0));
-        mInhibitionSlider.setValue(intValue(ECHOSimulation.INHIBITION, 0));
-        mDataExcitationSlider.setValue(intValue(ECHOSimulation.DATA_EXCITATION, 0));
-        mDecaySlider.setValue(intValue(ECHOSimulation.THETA, 0));
-        mSimplicitySlider.setValue(intValue(ECHOSimulation.SIMPLICITY, 0));
+        mExcitationSlider.setValue(intValue(Simulator.EXCITATION, 0));
+        mInhibitionSlider.setValue(intValue(Simulator.INHIBITION, 0));
+        mDataExcitationSlider.setValue(intValue(Simulator.DATA_EXCITATION, 0));
+        mDecaySlider.setValue(intValue(Simulator.THETA, 0));
+        mSimplicitySlider.setValue(intValue(Simulator.SIMPLICITY, 0));
     }
 
     /**

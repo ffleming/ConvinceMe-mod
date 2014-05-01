@@ -41,12 +41,15 @@ public class LinkVector extends Vector implements Serializable {
      * @param w The weight to set
      * @param divWeight True if the weight should be divided among multiple links
      */
-    public void setWeights(float w, boolean divWeight) {
+    public void setWeights(float w, boolean divWeight, float simplicity) {
         for (Enumeration e = this.elements(); e.hasMoreElements();) {
-            ((Link) e.nextElement()).setWeights(w, divWeight);
+            ((Link) e.nextElement()).setWeights(w, divWeight, simplicity);
         }
     }
-    
+    /**
+     * Returns the total weight of the vector
+     * @return The vector's total weight
+     */
     public float getWeight() {
     	float ret = 0f;
     	for (Enumeration e = this.elements(); e.hasMoreElements();) {

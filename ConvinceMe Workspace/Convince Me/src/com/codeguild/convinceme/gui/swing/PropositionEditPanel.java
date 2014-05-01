@@ -1,7 +1,7 @@
 package com.codeguild.convinceme.gui.swing;
 
 import com.codeguild.convinceme.model.Proposition;
-import com.codeguild.convinceme.model.ECHOSimulation;
+import com.codeguild.convinceme.model.Simulator;
 import com.codeguild.convinceme.utils.Debug;
 
 import javax.swing.*;
@@ -60,8 +60,8 @@ public class PropositionEditPanel extends JPanel {
 		*/
         
         mReliabilitySlider = new JSlider(JSlider.HORIZONTAL, 1,
-                                            ECHOSimulation.MAX_RELIABILITY,
-                                            ECHOSimulation.MAX_RELIABILITY);
+                                            Simulator.MAX_RELIABILITY,
+                                            Simulator.MAX_RELIABILITY);
         mReliabilitySlider.setMajorTickSpacing(1);
         mReliabilitySlider.setPaintTicks(true);
         mReliabilitySlider.setPaintLabels(true);
@@ -75,7 +75,7 @@ public class PropositionEditPanel extends JPanel {
         ratingsPanel.add(mRatingSlider, BorderLayout.NORTH);*/
         
         if (!mIsHypothesis) {
-            mReliabilitySlider.setBorder(new TitledBorder("Reliability of evidence (1 = low, " + ECHOSimulation.MAX_RELIABILITY + " = high)"));
+            mReliabilitySlider.setBorder(new TitledBorder("Reliability of evidence (1 = low, " + Simulator.MAX_RELIABILITY + " = high)"));
             ratingsPanel.add(mReliabilitySlider, BorderLayout.CENTER);
         }
         

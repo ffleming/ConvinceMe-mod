@@ -12,7 +12,7 @@ public class Encoding {
 
     public static final String EXPLAIN_TEXT = "explain ";
     public static final String CONTRADICT_TEXT = "contradict ";
-    public static final String JOINT_CONTRADICT_TEXT = "jointly contradict";
+    public static final String JOINT_CONTRADICT_TEXT = "jcontradict";
     public static final String DATA_TEXT = "data ";
     public static final String PROP_TEXT = "proposition ";
 
@@ -123,7 +123,7 @@ public class Encoding {
                 	encoding.append("//NB: This is a joint contradiction and will not work with an unmodified ECHO interpreter!\n");
                 	encoding.append(JOINT_CONTRADICT_TEXT);
                 	encoding.append("(");
-                    encoding.append("(" + link.getJointContradictions().getLabelsText() + "), ");
+                    encoding.append("(" + link.getJointContradictions().getLabelsText() + "), " + link.getContradicted().getLabel());
                 } else {
                 	encoding.append(CONTRADICT_TEXT + "(" + link.getJointContradictions().getLabelsText() + ", " + link.getContradicted().getLabel());
                 }
